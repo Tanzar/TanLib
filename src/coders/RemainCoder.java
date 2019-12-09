@@ -9,17 +9,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
+ * Class allowes to code and decode character string based on number given
  * @author User
  */
 public class RemainCoder {
     
+    /**
+     * Metod changes character string to diffrent string (encodes) based on number given as code, for diffrent numbers method gives diffrent outputs
+     * @param code number that will be used to code text
+     * @param text character string to encode
+     * @return 
+     */
     public static String encode(Integer code, String text){
         char[] encodeArray = createArray(code);
         String encodedText = encodeByArray(text, encodeArray);
         return encodedText;
     }
     
+    /**
+     * Method changes result of method encode() to original string if given same code as used to encode, for example if string was coded with code 23 then it can be decoded with code 23, if you use other code it will be decoded incorrectly
+     * @param code number used to code text
+     * @param text text yo decode
+     * @return 
+     */
     public static String decode(Integer code, String text){
         char[] encodeArray = createArray(code);
         String decodedText = decodeByArray(text, encodeArray);
@@ -65,7 +77,7 @@ public class RemainCoder {
         return result;
     }
     
-    private static char[] createArray(Integer kod){
+    protected static char[] createArray(Integer kod){
         char[] asciiArray = createAsciiArray();
         char[] result = new char[asciiArray.length];
         List<Character> list = new ArrayList<Character>();
