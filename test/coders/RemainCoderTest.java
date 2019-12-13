@@ -5,6 +5,7 @@
  */
 package coders;
 
+import tanlib.coders.RemainCoder;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
