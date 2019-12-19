@@ -26,6 +26,21 @@ public class RemainCoder {
         return encodedText;
     }
     
+    private static String encodeByArray(String text, char[] encodeArray){
+        String result = "";
+        char[] charArray = text.toCharArray();
+        for(char encodedCharacter: charArray){
+            int index = encodedCharacter - 32;
+            if((index >= 0) && (index < encodeArray.length)){
+                result += encodeArray[index];
+            }
+            else{
+                result += encodedCharacter;
+            }
+        }
+        return result;
+    }
+    
     /**
      * Method changes result of method encode() to original string if given same code as used to encode, for example if string was coded with code 23 then it can be decoded with code 23, if you use other code it will be decoded incorrectly
      * @param code number used to code text
@@ -62,19 +77,29 @@ public class RemainCoder {
         return result;
     }
     
-    private static String encodeByArray(String text, char[] encodeArray){
-        String result = "";
-        char[] charArray = text.toCharArray();
-        for(char encodedCharacter: charArray){
-            int index = encodedCharacter - 32;
-            if((index >= 0) && (index < encodeArray.length)){
-                result += encodeArray[index];
-            }
-            else{
-                result += encodedCharacter;
+    /**
+     * Calculate complexity for each code, it ideicates how mixed is encoding array, higher numbers mean more complexity
+     * @param code for which complexity will be calculated
+     * @return complexity of encode array, the higher the better
+     */
+    public static int calculateComplexity(int code){
+        int scale = 0;
+        if(code == 2829){
+            int k = 0;
+        }
+        char[] encodeArray = RemainCoder.createArray(code);
+        for(int i = 0; i < encodeArray.length; i++){
+            if(i > 0 && i < encodeArray.length - 1){
+                int current = encodeArray[i];
+                int left = encodeArray[i - 1];
+                int right = encodeArray[i + 1];
+                if((Math.abs(current - left) > 1) && (Math.abs(current - right) > 1)){
+                    scale += Math.abs(current - left) + Math.abs(current - right);
+                }
             }
         }
-        return result;
+        
+        return scale;
     }
     
     protected static char[] createArray(Integer kod){
