@@ -5,18 +5,22 @@
  */
 package tanlib.document;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import tanlib.exceptions.DocxException;
-import tanlib.exceptions.EmptyFilePathException;
-import tanlib.exceptions.NotExistException;
-import tanlib.exceptions.WrongFileTypeException;
 
 /**
  *
@@ -62,8 +66,24 @@ public class DocxFile {
         return this.docx;
     }
     
-    public String getFolderPath(){
-        String path = docx.getAbsolutePath();
+    /**
+     * Method finds folder which contains docx file.
+     * @return Local path, where project is root
+     */
+    public String getLocalFolderPath(){
+        String path = docx.getPath();
+        String docxName = docx.getName();
+        int endIndex = path.length() - docxName.length() - 1;
+        path = path.substring(0, endIndex);
+        return path;
+    }
+    
+    /**
+     * Method finds folder which contains docx file.
+     * @return System path, where system root is start of path
+     */
+    public String getSystemFolderPath(){
+        String path = docx.getPath();
         String docxName = docx.getName();
         int endIndex = path.length() - docxName.length() - 1;
         path = path.substring(0, endIndex);
@@ -81,24 +101,103 @@ public class DocxFile {
     }
     
     private File copy(String destinationPath) throws IOException{
-        File dest = new File(destinationPath);
-        InputStream is = null;
-        OutputStream os = null;
+        File destinationFile = new File(destinationPath);
+        InputStream input = null;
+        OutputStream output = null;
         try {
-            is = new FileInputStream(this.docx);
-            os = new FileOutputStream(dest);
+            input = new FileInputStream(this.docx);
+            output = new FileOutputStream(destinationFile);
             byte[] buffer = new byte[1024];
             int length;
-            while ((length = is.read(buffer)) > 0) {
-                os.write(buffer, 0, length);
+            while ((length = input.read(buffer)) > 0) {
+                output.write(buffer, 0, length);
             }
         } finally {
-            is.close();
-            os.close();
+            input.close();
+            output.close();
         }
-        return dest;
+        return destinationFile;
     }
     
+    /**
+     * Method extracts docx contents in document.xml file to selected folder. Document.xml contains text from docx file.
+     * @param outputFolderPath path to folder where file will be extracted.
+     * @return path to extracted file
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    public String extractDocumentXML(String outputFolderPath) throws FileNotFoundException, IOException{
+        ZipEntry zEntry = null;
+        String unzippedFilePath = "";
+        FileInputStream fis = new FileInputStream(this.docx.getPath());
+        ZipInputStream zipIs = new ZipInputStream(new BufferedInputStream(fis));
+        boolean found = false;
+        while (found == false && (zEntry = zipIs.getNextEntry()) != null) {
+            String filepath = unzip(zEntry, zipIs, outputFolderPath);
+            if(!filepath.isEmpty()){
+                unzippedFilePath = filepath;
+                found = true;
+            }
+        }
+        zipIs.close();
+        fis.close();
+        return unzippedFilePath;
+    }
     
+    /**
+     * Method extracts docx contents in document.xml file to same location as docx. Document.xml contains text from docx file.
+     * @return path to extracted file
+     * @throws FileNotFoundException
+     * @throws IOException 
+     */
+    public String extractDocumentXML() throws FileNotFoundException, IOException{
+        ZipEntry zEntry = null;
+        String unzippedFilePath = "";
+        FileInputStream fis = new FileInputStream(this.docx.getPath());
+        ZipInputStream zipIs = new ZipInputStream(new BufferedInputStream(fis));
+        boolean found = false;
+        while (found == false && (zEntry = zipIs.getNextEntry()) != null) {
+            String filepath = unzip(zEntry, zipIs, this.getLocalFolderPath());
+            if(!filepath.isEmpty()){
+                unzippedFilePath = filepath;
+                found = true;
+            }
+        }
+        zipIs.close();
+        fis.close();
+        return unzippedFilePath;
+    }
     
+    private String unzip(ZipEntry zEntry, ZipInputStream inputStream, String destinationFolder) throws FileNotFoundException, IOException{
+        String newFilePath = "";
+        String filename = zEntry.getName();
+        byte[] buffer = new byte[1024];
+        if(filename.contains("word/document.xml")){
+            newFilePath = destinationFolder + File.separator + "document.xml";
+            File newFile = new File(newFilePath);
+            new File(newFile.getParent()).mkdirs();
+            FileOutputStream fos = new FileOutputStream(newFile);             
+            int len;
+            while ((len = inputStream.read(buffer)) > 0) {
+                fos.write(buffer, 0, len);
+            }
+            fos.close(); 
+        }
+        return newFilePath;
+    }
+    
+    /**
+     * Method changes contents of docx file.
+     * @param documentXmlPath Path to document.xml file which should be extracted from docx file
+     */
+    public void replaceContents(String documentXmlPath){
+        Path myFilePath = Paths.get(documentXmlPath);
+        Path zipFilePath = Paths.get(docx.getPath());
+        try( FileSystem fs = FileSystems.newFileSystem(zipFilePath, null) ){
+            Path fileInsideZipPath = fs.getPath("word/document.xml");
+            Files.deleteIfExists(fileInsideZipPath);
+            Files.copy(myFilePath, fileInsideZipPath);
+        } catch (IOException e) {
+        }
+    }
 }

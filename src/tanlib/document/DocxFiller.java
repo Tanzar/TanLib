@@ -5,22 +5,12 @@
  */
 package tanlib.document;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Scanner;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import tanlib.containers.StringContainer;
 import tanlib.exceptions.DocxException;
 
@@ -30,8 +20,8 @@ import tanlib.exceptions.DocxException;
  */
 public class DocxFiller {
     
-    private TagContainer tags;
-    private DocxFile patternFile;
+    private final TagContainer tags;
+    private final DocxFile patternFile;
     private DocxFile filledFile;
     
     public DocxFiller(DocxFile patternFile){
@@ -47,82 +37,111 @@ public class DocxFiller {
         this.tags.clear();
     }
     
-    public DocxFile fillFile(String filledFilename) throws IOException, DocxException{
-        String destinationFolder = patternFile.getFolderPath();
-        filledFile = this.patternFile.copy(destinationFolder, filledFilename);
-        fillTags(filledFile);
+    /**
+     * Method creates file based on pattern file and tags added to class instance with addTag() method. 
+     * For tags to be found they must be marked by '<' and '>' characters ( example <ExampleTag>) in pattern file.
+     * if tag is not on list it is ignored(not changed).
+     * @param filledFilename name of filled file
+     * @return file with filled tags
+     * @throws IOException
+     * @throws DocxException 
+     */
+    public DocxFile fillTags(String filledFilename) throws IOException, DocxException{
+        filledFile = copyPattern(filledFilename);
+        String contentsFilePath = filledFile.extractDocumentXML();
+        String contents = readFile(contentsFilePath);
+        StringContainer splitContents = changeTags(contents);
+        prepareOutputFile(splitContents, contentsFilePath);
         return filledFile;
     }
     
-    private void fillTags(DocxFile fileToFill) throws IOException{
-        String path = fileToFill.getFolderPath();
-        File fileToUnzip = fileToFill.getFile();
-        path = unzipFile(fileToUnzip.getAbsolutePath(), path);
-        String contents = readFile(path);
-        StringContainer splitContents = splitContents(contents);
-        splitContents = identifyTags(splitContents);
-        String[] documentInputs = prepareFileInputs(splitContents);
-        writeFile(path, documentInputs);
-        replaceContents(filledFile, path);
-        File documentXml = new File(path);
-        documentXml.delete();
+    private DocxFile copyPattern(String copiedFileName) throws IOException, DocxException{
+        String destinationFolder = patternFile.getLocalFolderPath();
+        DocxFile copy = this.patternFile.copy(destinationFolder, copiedFileName);
+        return copy;
     }
     
-    private StringContainer splitContents(String contents){
-        StringContainer container = new StringContainer();
-        String newContentsFragment = "";
-        int index = 0;
+    private String readFile(String filePath){
+        String data = "";
+        try {
+            File myObj = new File(filePath);
+            Scanner myReader = new Scanner(myObj);
+            while (myReader.hasNextLine()) {
+                data += myReader.nextLine();
+            }
+            myReader.close();
+        } catch (FileNotFoundException e) {
+        }
+        return data;
+    }
+    
+    private StringContainer changeTags(String contents){
+        StringContainer newContents = new StringContainer();
         boolean end = false;
         while(!end) {
-            index = contents.indexOf("&lt;");
-            if(index != -1){
-                newContentsFragment = contents.substring(0, index);
-                container.add(newContentsFragment);
-                contents = contents.substring(index);
-                newContentsFragment = findTagEnd(contents);
-                container.add(newContentsFragment);
-                index = newContentsFragment.length() + 6;
-                contents = contents.substring(index);
+            int tagStartIndex = findTagStartIndex(contents);
+            int tagEndIndex = findTagEndIndex(contents);
+            if(tagStartIndex != -1 && tagEndIndex != -1 && tagStartIndex < tagEndIndex){
+                String charsBeforeTag = contents.substring(0, tagStartIndex);
+                newContents.add(charsBeforeTag);
+                String tag = contents.substring(tagStartIndex, tagEndIndex + 4);
+                tag = checkTag(tag);
+                newContents.add(tag);
+                contents = contents.substring(tagEndIndex + 4);
             }
             else{
                 end = true;
-                container.add(contents);
+                newContents.add(contents);
             }
         }
-        return container;
+        return newContents;
     }
     
-    private String findTagEnd(String contents){
-        String result = "";
-        int index = 0;
-        contents = contents.substring(4);
-        contents = "<" + contents;
-        index = contents.indexOf("&gt;");
-        if(index != -1){
-            result = contents.substring(0, index + 4);
-            result = result.substring(0, index) + ">";
+    private int findTagStartIndex(String text){
+        int index = text.indexOf("&lt;");
+        return index;
+    }
+    
+    private int findTagEndIndex(String text){
+        int index = text.indexOf("&gt;");
+        return index;
+    }
+    
+    private String checkTag(String tag){
+        int tagIndex = this.identifyTag(tag);
+        if(tagIndex >= 0){
+            Tag foundTag = tags.get(tagIndex);
+            String textToWrite = foundTag.getStringToWrite();
+            return textToWrite;
         }
         else{
-            result = contents;
+            return tag;
         }
-        return result;
     }
     
-    private StringContainer identifyTags(StringContainer splitedContents){
-        for(int i = 0; i < splitedContents.size(); i++){
-            String currentContents = splitedContents.get(i);
-            int j = 0;
-            Tag[] tags = this.tags.toArray();
-            boolean found = false;
-            while(!found && j < tags.length){
-                Tag currentTag = tags[j];
-                if(currentContents.equals(currentTag.getFormat())){
-                    splitedContents.change(i, currentTag.getStringToWrite());
-                }
-                j++;
+    private int identifyTag(String tag){
+        tag = "<" + tag.substring(4, tag.length() - 4) + ">";
+        int tagIndex = -1;
+        int j = 0;
+        Tag[] tags = this.tags.toArray();
+        boolean found = false;
+        while(!found && j < tags.length){
+            Tag currentTag = tags[j];
+            if(tag.equals(currentTag.getFormat())){
+                found = true;
+                tagIndex = j;
             }
+            j++;
         }
-        return splitedContents;
+        return tagIndex;
+    }
+    
+    private void prepareOutputFile(StringContainer documentXMLContents, String documentXmlPath) throws IOException{
+        String[] documentInputs = prepareFileInputs(documentXMLContents);
+        writeFile(documentXmlPath, documentInputs);
+        filledFile.replaceContents(documentXmlPath);
+        File documentXml = new File(documentXmlPath);
+        documentXml.delete();
     }
     
     private String[] prepareFileInputs(StringContainer container){
@@ -144,73 +163,7 @@ public class DocxFiller {
         printWriter.close();
     }
     
-    private void replaceContents(DocxFile fileToChange, String documentXmlPath){
-        Path myFilePath = Paths.get(documentXmlPath);
-        File filledFile = fileToChange.getFile();
-        Path zipFilePath = Paths.get(filledFile.getAbsolutePath());
-        try( FileSystem fs = FileSystems.newFileSystem(zipFilePath, null) ){
-            Path fileInsideZipPath = fs.getPath("word/document.xml");
-            Files.deleteIfExists(fileInsideZipPath);
-            Files.copy(myFilePath, fileInsideZipPath);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
-    
-    private String unzipFile(String filePath, String oPath) throws FileNotFoundException, IOException{
-        FileInputStream fis = null;
-        ZipInputStream zipIs = null;
-        ZipEntry zEntry = null;
-        String unzippedFilePath = "";
-        fis = new FileInputStream(filePath);
-        zipIs = new ZipInputStream(new BufferedInputStream(fis));
-        boolean found = false;
-        while (found == false && (zEntry = zipIs.getNextEntry()) != null) {
-            String filepath = unzip(zEntry, zipIs, oPath);
-            if(!filepath.isEmpty()){
-                unzippedFilePath = filepath;
-                found = true;
-            }
-        }
-        zipIs.close();
-        fis.close();
-        return unzippedFilePath;
-    }
-    
-    private String unzip(ZipEntry zEntry, ZipInputStream inputStream, String destinationFolder) throws FileNotFoundException, IOException{
-        String newFilePath = "";
-        String filename = zEntry.getName();
-        byte[] buffer = new byte[1024];
-        if(filename.contains("word/document.xml")){
-            newFilePath = destinationFolder + File.separator + "document.xml";
-            File newFile = new File(newFilePath);
-            new File(newFile.getParent()).mkdirs();
-            FileOutputStream fos = new FileOutputStream(newFile);             
-            int len;
-            while ((len = inputStream.read(buffer)) > 0) {
-                fos.write(buffer, 0, len);
-            }
-            fos.close(); 
-        }
-        return newFilePath;
-    }
-    
-    private String readFile(String filePath){
-        String data = "";
-        try {
-            File myObj = new File(filePath);
-            Scanner myReader = new Scanner(myObj);
-            while (myReader.hasNextLine()) {
-                data += myReader.nextLine();
-            }
-            myReader.close();
-        } catch (FileNotFoundException e) {
-        }
-        return data;
-    }
-    
-    public void clearAfterYourself(){
+    public void removeFilledFile(){
         if(filledFile != null){
             File filledFile = this.filledFile.getFile();
             filledFile.delete();

@@ -40,8 +40,8 @@ public class Tester {
         replacer.addTag(tag);
         tag = new Tag("<test7>", "minus big");
         replacer.addTag(tag);
-        replacer.fillFile("test");
-        replacer.clearAfterYourself();
+        replacer.fillTags("test");
+        replacer.removeFilledFile();
     }
     
 }
