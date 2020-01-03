@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * Class allowes to code and decode character string based on number given
- * @author User
+ * @author Tanzar
  */
 public class RemainCoder {
     

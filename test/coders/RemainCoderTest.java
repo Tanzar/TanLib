@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
 
 /**
  *
- * @author User
+ * @author Tanzar
  */
 public class RemainCoderTest {
     

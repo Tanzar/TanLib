@@ -9,7 +9,7 @@ import java.util.Random;
 
 /**
  * Class for randomized operations
- * @author User
+ * @author Tanzar
  */
 public class Randomizer {
     

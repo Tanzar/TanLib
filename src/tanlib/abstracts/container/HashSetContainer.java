@@ -9,17 +9,17 @@ import java.util.HashSet;
 
 /**
  *
- * @author User
+ * @author Tanzar
  */
-public abstract class Container<itemType> {
+public abstract class HashSetContainer<itemType> {
     
     private HashSet<itemType> data;
     
-    public Container(){
+    public HashSetContainer(){
         this.data = new HashSet<itemType>();
     }
     
-    public Container(HashSet<itemType> data){
+    public HashSetContainer(HashSet<itemType> data){
         this.data = data;
     }
     
@@ -45,6 +45,13 @@ public abstract class Container<itemType> {
         return data.contains(item);
     }
     
-    public abstract itemType[] toArray();
-    protected abstract boolean compare(String value, itemType item);
+    public void clear(){
+        this.data.clear();
+    }
+    
+    public itemType[] toArray(){
+        return toArray(data);
+    }
+    
+    public abstract itemType[] toArray(HashSet<itemType> data);
 }
