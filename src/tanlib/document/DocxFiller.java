@@ -22,7 +22,7 @@ public class DocxFiller {
     
     private final TagContainer tags;
     private final DocxFile patternFile;
-    private DocxFile filledFile;
+    private DocxFile outputFile;
     
     public DocxFiller(DocxFile patternFile){
         this.patternFile = patternFile;
@@ -41,23 +41,23 @@ public class DocxFiller {
      * Method creates file based on pattern file and tags added to class instance with addTag() method. 
      * For tags to be found they must be marked by '<' and '>' characters ( example <ExampleTag>) in pattern file.
      * if tag is not on list it is ignored(not changed).
-     * @param filledFilename name of filled file
-     * @return file with filled tags
+     * @param outputFileName name of output file
+     * @return file with changed tags, it's located at the same directory as pattern
      * @throws IOException
      * @throws DocxException 
      */
-    public DocxFile fillTags(String filledFilename) throws IOException, DocxException{
-        filledFile = copyPattern(filledFilename);
-        String contentsFilePath = filledFile.extractDocumentXML();
-        String contents = readFile(contentsFilePath);
-        StringContainer splitContents = changeTags(contents);
-        prepareOutputFile(splitContents, contentsFilePath);
-        return filledFile;
+    public DocxFile swapTags(String outputFileName) throws IOException, DocxException{
+        outputFile = copyPatternFile(outputFileName);
+        String contentsFilePath = outputFile.extractDocumentXML();
+        String documentContents = readFile(contentsFilePath);
+        StringContainer splitedContents = changeTags(documentContents);
+        prepareOutputFile(splitedContents, contentsFilePath);
+        return outputFile;
     }
     
-    private DocxFile copyPattern(String copiedFileName) throws IOException, DocxException{
+    private DocxFile copyPatternFile(String newFileName) throws IOException, DocxException{
         String destinationFolder = patternFile.getLocalFolderPath();
-        DocxFile copy = this.patternFile.copy(destinationFolder, copiedFileName);
+        DocxFile copy = this.patternFile.copy(destinationFolder, newFileName);
         return copy;
     }
     
@@ -120,7 +120,7 @@ public class DocxFiller {
     }
     
     private int identifyTag(String tag){
-        tag = "<" + tag.substring(4, tag.length() - 4) + ">";
+        tag = "<" + tag.substring(4, tag.length() - 4) + ">";  //change tag format from &lt;tag&gt; to <tag>
         int tagIndex = -1;
         int j = 0;
         Tag[] tags = this.tags.toArray();
@@ -136,15 +136,18 @@ public class DocxFiller {
         return tagIndex;
     }
     
-    private void prepareOutputFile(StringContainer documentXMLContents, String documentXmlPath) throws IOException{
-        String[] documentInputs = prepareFileInputs(documentXMLContents);
-        writeFile(documentXmlPath, documentInputs);
-        filledFile.replaceContents(documentXmlPath);
+    private void prepareOutputFile(StringContainer splitedDocumentContents, String documentXmlPath) throws IOException{
+        String[] dataToWrite = combineSplitedContents(splitedDocumentContents);
+        writeToFile(documentXmlPath, dataToWrite);
+        outputFile.replaceContents(documentXmlPath);
         File documentXml = new File(documentXmlPath);
         documentXml.delete();
     }
     
-    private String[] prepareFileInputs(StringContainer container){
+    /**
+     * Output must be array with 2 elements, it is same as document.xml 
+     */
+    private String[] combineSplitedContents(StringContainer container){
         String[] documentInputs = new String[2];
         documentInputs[0] = container.get(0);
         documentInputs[1] = "";
@@ -154,7 +157,7 @@ public class DocxFiller {
         return documentInputs;
     }
     
-    private void writeFile(String filePath, String[] dataToWrite) throws IOException{
+    private void writeToFile(String filePath, String[] dataToWrite) throws IOException{
         FileWriter fileWriter = new FileWriter(filePath);
         PrintWriter printWriter = new PrintWriter(fileWriter);
         for(int i = 0; i < dataToWrite.length; i++){
@@ -163,11 +166,11 @@ public class DocxFiller {
         printWriter.close();
     }
     
-    public void removeFilledFile(){
-        if(filledFile != null){
-            File filledFile = this.filledFile.getFile();
-            filledFile.delete();
-            this.filledFile = null;
+    public void removeOutputFile(){
+        if(outputFile != null){
+            File file = this.outputFile.getFile();
+            file.delete();
+            this.outputFile = null;
         }
     }
 }

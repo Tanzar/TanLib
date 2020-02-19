@@ -36,7 +36,7 @@ public class Randomizer {
      * @return true or false based on chance
      */
     public static boolean randomByChance(Double chance){
-        if(chance < 100 && chance > 0){
+        if(chance <= 100 && chance > 0){
             boolean result = false;
             Integer chanceNumber = doubleToInt(chance);
             Integer oppositeChance = doubleToInt(100.0 - chance);
@@ -50,6 +50,7 @@ public class Randomizer {
             return false;
         }
     }
+    
     private static Integer doubleToInt(Double number){
         String numberString = number.toString();
         int index = numberString.indexOf(".");

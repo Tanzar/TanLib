@@ -14,15 +14,21 @@ import tanlib.document.Tag;
 import tanlib.exceptions.DocxException;
 import tanlib.exceptions.EmptyFilePathException;
 import tanlib.exceptions.WrongFileTypeException;
+import tanlib.testObject.TestEntity;
+import tanlib.testObject.TesterClass;
 
 /**
- *
+ * Klasa do sprawdzania różnych spraw, nie jest ważna
  * @author Tanzar
  */
 public class Tester {
     
     @Test
     public void test() throws IOException, DocxException{
+        TesterClass teste = new TesterClass();
+        TestEntity test = new TestEntity(10);
+        TestEntity tes = teste.test(test);
+        System.out.println("przed " + test.getI() + " po " + tes.getI());
     }
     
 }

@@ -5,9 +5,7 @@
  */
 package tanlib.containers;
 
-import java.util.HashSet;
 import java.util.List;
-import tanlib.abstracts.container.HashSetContainer;
 import tanlib.abstracts.container.ListContainer;
 
 /**

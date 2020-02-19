@@ -84,9 +84,6 @@ public class RemainCoder {
      */
     public static int calculateComplexity(int code){
         int scale = 0;
-        if(code == 2829){
-            int k = 0;
-        }
         char[] encodeArray = RemainCoder.createArray(code);
         for(int i = 0; i < encodeArray.length; i++){
             if(i > 0 && i < encodeArray.length - 1){
