@@ -41,6 +41,7 @@ public class DocxFiller {
      * Method creates file based on pattern file and tags added to class instance with addTag() method. 
      * For tags to be found they must be marked by '<' and '>' characters ( example <ExampleTag>) in pattern file.
      * if tag is not on list it is ignored(not changed).
+     * WARNING! Library changes codint type to ISO 8859-2 from default set in file
      * @param outputFileName name of output file
      * @return file with changed tags, it's located at the same directory as pattern
      * @throws IOException
@@ -49,7 +50,8 @@ public class DocxFiller {
     public DocxFile swapTags(String outputFileName) throws IOException, DocxException{
         outputFile = copyPatternFile(outputFileName);
         String contentsFilePath = outputFile.extractDocumentXML();
-        String documentContents = readFile(contentsFilePath);
+        String[] documentContents = readFile(contentsFilePath);
+        documentContents[0] = "<?xml version=\"1.0\" encoding=\"ISO_8859-2\" standalone=\"yes\"?>";
         StringContainer splitedContents = changeTags(documentContents);
         prepareOutputFile(splitedContents, contentsFilePath);
         return outputFile;
@@ -61,37 +63,37 @@ public class DocxFiller {
         return copy;
     }
     
-    private String readFile(String filePath){
-        String data = "";
+    private String[] readFile(String filePath){
+        String[] data = new String[2];
         try {
             File myObj = new File(filePath);
             Scanner myReader = new Scanner(myObj);
-            while (myReader.hasNextLine()) {
-                data += myReader.nextLine();
-            }
+            data[0] = myReader.nextLine();
+            data[1] = myReader.nextLine();
             myReader.close();
         } catch (FileNotFoundException e) {
         }
         return data;
     }
     
-    private StringContainer changeTags(String contents){
+    private StringContainer changeTags(String[] contents){
         StringContainer newContents = new StringContainer();
+        newContents.add(contents[0]);
         boolean end = false;
         while(!end) {
-            int tagStartIndex = findTagStartIndex(contents);
-            int tagEndIndex = findTagEndIndex(contents);
+            int tagStartIndex = findTagStartIndex(contents[1]);
+            int tagEndIndex = findTagEndIndex(contents[1]);
             if(tagStartIndex != -1 && tagEndIndex != -1 && tagStartIndex < tagEndIndex){
-                String charsBeforeTag = contents.substring(0, tagStartIndex);
+                String charsBeforeTag = contents[1].substring(0, tagStartIndex);
                 newContents.add(charsBeforeTag);
-                String tag = contents.substring(tagStartIndex, tagEndIndex + 4);
+                String tag = contents[1].substring(tagStartIndex, tagEndIndex + 4);
                 tag = checkTag(tag);
                 newContents.add(tag);
-                contents = contents.substring(tagEndIndex + 4);
+                contents[1] = contents[1].substring(tagEndIndex + 4);
             }
             else{
                 end = true;
-                newContents.add(contents);
+                newContents.add(contents[1]);
             }
         }
         return newContents;

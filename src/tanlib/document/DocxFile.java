@@ -35,6 +35,12 @@ public class DocxFile {
         this.docx = docx;
     }
     
+    public DocxFile(String filePath) throws DocxException{
+        File file = new File(filePath);
+        checkFile(file);
+        this.docx = file;
+    }
+    
     private void checkFile(File docx) throws DocxException {
         String path = docx.getAbsolutePath();
         checkIfFilePathIsEmpty(path);
