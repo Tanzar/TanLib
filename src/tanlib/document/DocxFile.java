@@ -20,6 +20,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import org.apache.poi.xwpf.converter.pdf.PdfConverter;
+import org.apache.poi.xwpf.converter.pdf.PdfOptions;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import tanlib.exceptions.DocxException;
 
 /**
@@ -89,11 +92,19 @@ public class DocxFile {
      * @return System path, where system root is start of path
      */
     public String getSystemFolderPath(){
-        String path = docx.getPath();
+        String path = docx.getAbsolutePath();
         String docxName = docx.getName();
         int endIndex = path.length() - docxName.length() - 1;
         path = path.substring(0, endIndex);
         return path;
+    }
+    
+    public String getLocalFilePath(){
+        return this.docx.getPath();
+    }
+    
+    public String getSystemFilePath(){
+        return this.docx.getAbsolutePath();
     }
     
     public DocxFile copy(String destinationFolder, String filename) throws IOException, DocxException{
@@ -204,6 +215,26 @@ public class DocxFile {
             Files.deleteIfExists(fileInsideZipPath);
             Files.copy(myFilePath, fileInsideZipPath);
         } catch (IOException e) {
+        }
+    }
+    
+    /**
+     * Method converts this DocxFile to PDF
+     * @param pdfPath path to new file
+     * @return output PDF file
+     */
+    public File convertToPDF(String pdfPath){
+        try {
+            InputStream doc = new FileInputStream(this.docx);
+            XWPFDocument document = new XWPFDocument(doc);
+            PdfOptions options = PdfOptions.create();
+            File outputFile = new File(pdfPath);
+            OutputStream out = new FileOutputStream(outputFile);
+            PdfConverter.getInstance().convert(document, out, options);
+            return outputFile;
+        } catch (IOException ex) {
+            File outputFile = new File(pdfPath);
+            return outputFile;
         }
     }
 }

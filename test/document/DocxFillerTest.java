@@ -5,6 +5,7 @@
  */
 package document;
 
+import java.io.File;
 import java.io.IOException;
 import org.junit.Test;
 import tanlib.document.DocxFile;
@@ -24,7 +25,9 @@ public class DocxFillerTest {
         DocxFiller filler = new DocxFiller(testDocx);
         prepareTags(filler);
         DocxFile outputFile = filler.swapTags("testowy");
+        File outputPDF = outputFile.convertToPDF("src\\resources\\testowy.pdf");
         filler.removeOutputFile();
+        outputPDF.delete();
     }
     
     private void prepareTags(DocxFiller docxFiller){
