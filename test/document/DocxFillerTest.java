@@ -11,6 +11,7 @@ import org.junit.Test;
 import tanlib.document.DocxFile;
 import tanlib.document.DocxFiller;
 import tanlib.document.Tag;
+import tanlib.document.TagContainer;
 import tanlib.exceptions.DocxException;
 
 /**
@@ -24,9 +25,9 @@ public class DocxFillerTest {
         DocxFile testDocx = new DocxFile("src\\resources\\TagReplacerTest.docx");
         DocxFiller filler = new DocxFiller(testDocx);
         prepareTags(filler);
-        DocxFile outputFile = filler.swapTags("testowy");
+        DocxFile outputFile = filler.fill("testowy");
         File outputPDF = outputFile.convertToPDF("src\\resources\\testowy.pdf");
-        filler.removeOutputFile();
+        outputFile.delete();
         outputPDF.delete();
     }
     
@@ -45,5 +46,16 @@ public class DocxFillerTest {
         docxFiller.addTag(newTag);
         newTag = new Tag("<test7>", "cichaj u góry");
         docxFiller.addTag(newTag);
+    }
+    
+    @Test
+    public void testFindAllTags() throws DocxException, IOException{
+        DocxFile testDocx = new DocxFile("src\\resources\\TagReplacerTest.docx");
+        DocxFiller filler = new DocxFiller(testDocx);
+        TagContainer tags = filler.findAllTagsInPattern();
+        for(int i = 0; i < tags.size(); i++){
+            Tag tag = tags.get(i);
+            System.out.println(tag.toString());
+        }
     }
 }

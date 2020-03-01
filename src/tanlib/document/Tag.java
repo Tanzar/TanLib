@@ -34,4 +34,12 @@ public class Tag {
     public void setStringToWrite(String stringToWrite) {
         this.stringToWrite = stringToWrite;
     }
+    
+    @Override
+    public String toString(){
+        String output = "{ ";
+        output += "format: " + this.format;
+        output += " ; stringToWrite: " + this.stringToWrite + " }";
+        return output;
+    }
 }

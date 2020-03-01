@@ -10,14 +10,19 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.apache.poi.xwpf.converter.pdf.PdfConverter;
@@ -207,15 +212,44 @@ public class DocxFile {
      * Method changes contents of docx file.
      * @param documentXmlPath Path to document.xml file which should be extracted from docx file
      */
-    public void replaceContents(String documentXmlPath){
-        Path myFilePath = Paths.get(documentXmlPath);
-        Path zipFilePath = Paths.get(docx.getPath());
-        try( FileSystem fs = FileSystems.newFileSystem(zipFilePath, null) ){
-            Path fileInsideZipPath = fs.getPath("word/document.xml");
-            Files.deleteIfExists(fileInsideZipPath);
-            Files.copy(myFilePath, fileInsideZipPath);
-        } catch (IOException e) {
+    public void replaceContents(String header, String newContents){
+        try{
+            String xmlPath = this.rewriteDocumentXml(header, newContents);
+            this.replaceDocumentXml(xmlPath);
         }
+        catch (IOException ex) {
+            Logger.getLogger(DocxFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void replaceDocumentXml(String newXmlPath) throws IOException{
+        Path xmlFilePath = Paths.get(newXmlPath);
+        Path docxFilePath = Paths.get(docx.getPath());
+        try( FileSystem fs = FileSystems.newFileSystem(docxFilePath, null) ){       //don't change
+            Path xmlInsideDocxPath = fs.getPath("word/document.xml");
+            Files.deleteIfExists(xmlInsideDocxPath);
+            Files.copy(xmlFilePath, xmlInsideDocxPath);
+        } catch (IOException e) {}                                                  //otherwise it breaks
+        File file = new File(newXmlPath);
+        file.delete();
+    }
+    
+    private String rewriteDocumentXml(String header, String newContents) throws IOException{
+        String xmlPath = this.extractDocumentXML();
+        String[] dataToWrite = new String[2];
+        dataToWrite[0] = header;
+        dataToWrite[1] = newContents;
+        writeToFile(xmlPath, dataToWrite);
+        return xmlPath;
+    }
+    
+    private void writeToFile(String filePath, String[] dataToWrite) throws IOException{
+        FileWriter fileWriter = new FileWriter(filePath);
+        PrintWriter printWriter = new PrintWriter(fileWriter);
+        for(int i = 0; i < dataToWrite.length; i++){
+            printWriter.println(dataToWrite[i]);
+        }
+        printWriter.close();
     }
     
     /**
@@ -236,5 +270,30 @@ public class DocxFile {
             File outputFile = new File(pdfPath);
             return outputFile;
         }
+    }
+    
+    public void delete(){
+        this.docx.delete();
+    }
+    
+    public String getFileContents() throws IOException{
+        String documentXmlPath = this.extractDocumentXML();
+        String contents = readFile(documentXmlPath);
+        File documentXml = new File(documentXmlPath);
+        documentXml.delete();
+        return contents;
+    }
+    
+    private String readFile(String filePath){
+        String[] data = new String[2];
+        try {
+            File myObj = new File(filePath);
+            Scanner myReader = new Scanner(myObj);
+            data[0] = myReader.nextLine();
+            data[1] = myReader.nextLine();
+            myReader.close();
+        } catch (FileNotFoundException e) {
+        }
+        return data[1];
     }
 }
