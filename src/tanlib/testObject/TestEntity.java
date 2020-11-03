@@ -11,9 +11,12 @@ package tanlib.testObject;
  */
 public class TestEntity {
     private int i;
+    private boolean k;
+    private String z;
 
     public TestEntity(int i) {
         this.i = i;
+        this.k = true;
     }
 
     public int getI() {
@@ -22,6 +25,22 @@ public class TestEntity {
 
     public void setI(int i) {
         this.i = i;
+    }
+
+    public boolean isK() {
+        return k;
+    }
+
+    public void setK(boolean k) {
+        this.k = k;
+    }
+
+    public String getZ() {
+        return z;
+    }
+
+    public void setZ(String z) {
+        this.z = z;
     }
     
     
